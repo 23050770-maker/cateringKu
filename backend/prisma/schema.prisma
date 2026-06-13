@@ -1,0 +1,66 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id          String   @id @default(uuid())
+  firebaseUid String   @unique
+  email       String   @unique
+  name        String
+  role        String   // ENUM: "CUSTOMER", "TENANT", "SUPER_ADMIN"
+  tenantId    String? 
+  tenant      Tenant?  @relation(fields: [tenantId], references: [id])
+  orders      Order[]
+  createdAt   DateTime @default(now())
+}
+
+model Tenant {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  address     String?
+  users       User[]
+  menus       Menu[]
+  orders      Order[]
+  createdAt   DateTime @default(now())
+}
+
+model Menu {
+  id          String      @id @default(uuid())
+  tenantId    String
+  tenant      Tenant      @relation(fields: [tenantId], references: [id])
+  name        String
+  description String?
+  price       Float
+  maxQuota    Int         // Maximum portions available for this date
+  availableAt String      // Format: "YYYY-MM-DD"
+  orderItems  OrderItem[]
+}
+
+model Order {
+  id            String      @id @default(uuid())
+  customerId    String
+  customer      User        @relation(fields: [customerId], references: [id])
+  tenantId      String
+  tenant        Tenant      @relation(fields: [tenantId], references: [id])
+  totalAmount   Float
+  paymentStatus String      // ENUM: "PENDING", "PAID", "FAILED"
+  status        String      @default("PENDING") // ENUM: "PENDING", "PAID", "PREPARING", "SHIPPED", "COMPLETED", "CANCELLED"
+  orderDate     DateTime    @default(now())
+  orderItems    OrderItem[]
+}
+
+model OrderItem {
+  id         String @id @default(uuid())
+  orderId    String
+  order      Order  @relation(fields: [orderId], references: [id])
+  menuId     String
+  menu       Menu   @relation(fields: [menuId], references: [id])
+  quantity   Int
+  targetDate String // Format: "YYYY-MM-DD"
+}
